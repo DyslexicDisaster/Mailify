@@ -14,6 +14,17 @@ public class EmailManager implements IEmailManager {
 
     public EmailManager(UserManager userManager) {
         this.userManager = userManager;
+        bootstrapEmails();
+    }
+
+    private void bootstrapEmails() {
+        // Send some sample emails between test users
+        sendEmail("testUser1", "testUser2", "Welcome to the email system",
+                "Hello testUser2, Email 1 cool email");
+
+        sendEmail("testUser2", "testUser1", "RE: Welcome to the email system",
+                "Hi testUser1 what are you upto");
+
     }
 
     @Override
