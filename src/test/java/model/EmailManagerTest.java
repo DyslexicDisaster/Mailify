@@ -49,8 +49,8 @@ class EmailManagerTest {
         // Test sending an email to a single recipient
         String sender = "testUser1";
         String recipient = "testUser2";
-        String subject = "Project Update";
-        String body = "Here are the latest updates on our current project.";
+        String subject = "Test Single Recipient";
+        String body = "This is a test email body";
 
         Email email = emailManager.sendEmail(sender, recipient, subject, body);
 
@@ -80,8 +80,8 @@ class EmailManagerTest {
         // Test sending an email to multiple recipients
         String sender = "testUser1";
         List<String> recipients = Arrays.asList("testUser2", "testUser3");
-        String subject = "Weekly Team Update";
-        String body = "Here's our progress update for this week. Let me know if you have any questions.";
+        String subject = "Test Multiple Recipients";
+        String body = "This is a test email to multiple recipients";
 
         Email email = emailManager.sendEmail(sender, recipients, subject, body);
 
@@ -104,23 +104,23 @@ class EmailManagerTest {
     @Test
     void testSendEmailWithInvalidUsers() {
         // Test sending with invalid sender
-        Email email = emailManager.sendEmail("nonExistentUser", "testUser1", "Hello", "Test message");
+        Email email = emailManager.sendEmail("nonExistentUser", "testUser1", "Subject", "Body");
         assertNull(email, "Should not send email with invalid sender");
 
         // Test sending with invalid recipient
-        email = emailManager.sendEmail("testUser1", "nonExistentUser", "Hello", "Test message");
+        email = emailManager.sendEmail("testUser1", "nonExistentUser", "Subject", "Body");
         assertNull(email, "Should not send email with invalid recipient");
 
         // Test sending with invalid recipients in a list
         List<String> recipients = Arrays.asList("testUser2", "nonExistentUser");
-        email = emailManager.sendEmail("testUser1", recipients, "Hello", "Test message");
+        email = emailManager.sendEmail("testUser1", recipients, "Subject", "Body");
         assertNull(email, "Should not send email with any invalid recipients");
     }
 
     @Test
     void testListInbox() {
         // Send a test email to ensure inbox has something
-        emailManager.sendEmail("testUser1", "testUser2", "Meeting Tomorrow", "Don't forget our meeting tomorrow at 10 AM.");
+        emailManager.sendEmail("testUser1", "testUser2", "Inbox Test", "Testing inbox listing");
 
         // Get inbox for recipient
         List<Email> inbox = emailManager.listInbox("testUser2");
@@ -129,7 +129,7 @@ class EmailManagerTest {
 
         // Verify the test email is in the inbox
         boolean found = inbox.stream()
-                .anyMatch(e -> e.getSubject().equals("Meeting Tomorrow") && e.getSender().equals("testUser1"));
+                .anyMatch(e -> e.getSubject().equals("Inbox Test") && e.getSender().equals("testUser1"));
         assertTrue(found, "Test email should be in inbox");
 
         // Test inbox for non-existent user
@@ -140,44 +140,44 @@ class EmailManagerTest {
     @Test
     void testSearchInbox() {
         // Send emails with specific content to search for
-        emailManager.sendEmail("testUser1", "testUser2", "Team Meeting Notes", "Here are the notes from our team meeting.");
-        emailManager.sendEmail("testUser1", "testUser2", "Project Timeline", "Just wanted to discuss our team meeting schedule.");
-        emailManager.sendEmail("testUser3", "testUser2", "Question about Report", "This should not match the search.");
+        emailManager.sendEmail("testUser1", "testUser2", "Search Test Alpha", "This is searchable content");
+        emailManager.sendEmail("testUser1", "testUser2", "Another Test", "This contains alpha in the body");
+        emailManager.sendEmail("testUser3", "testUser2", "Unrelated", "This should not match");
 
-        // Search for "meeting" should bring up two emails
-        List<Email> searchResults = emailManager.searchInbox("testUser2", "meeting");
+        // Search for "alpha" which should match two emails
+        List<Email> searchResults = emailManager.searchInbox("testUser2", "alpha");
 
-        assertEquals(2, searchResults.size(), "Should find two emails matching 'meeting'");
+        assertEquals(2, searchResults.size(), "Should find two emails matching 'alpha'");
 
         // Verify the results contain the expected emails
         boolean foundSubject = false;
         boolean foundBody = false;
 
         for (Email email : searchResults) {
-            if (email.getSubject().toLowerCase().contains("meeting")) {
+            if (email.getSubject().toLowerCase().contains("alpha")) {
                 foundSubject = true;
             }
-            if (email.getBody().toLowerCase().contains("meeting")) {
+            if (email.getBody().toLowerCase().contains("alpha")) {
                 foundBody = true;
             }
         }
 
-        assertTrue(foundSubject, "Should find email with 'meeting' in subject");
-        assertTrue(foundBody, "Should find email with 'meeting' in body");
+        assertTrue(foundSubject, "Should find email with 'alpha' in subject");
+        assertTrue(foundBody, "Should find email with 'alpha' in body");
 
         // Test search with term not present
-        List<Email> emptyResults = emailManager.searchInbox("testUser2", "vacation");
+        List<Email> emptyResults = emailManager.searchInbox("testUser2", "nonexistentterm");
         assertTrue(emptyResults.isEmpty(), "Search for non-existent term should return empty list");
 
         // Test search for non-existent user
-        List<Email> nonExistentUserResults = emailManager.searchInbox("nonExistentUser", "meeting");
+        List<Email> nonExistentUserResults = emailManager.searchInbox("nonExistentUser", "alpha");
         assertTrue(nonExistentUserResults.isEmpty(), "Search for non-existent user should return empty list");
     }
 
     @Test
     void testListSent() {
         // Send a test email
-        emailManager.sendEmail("testUser1", "testUser2", "Quarterly Report", "Here's the quarterly report you requested.");
+        emailManager.sendEmail("testUser1", "testUser2", "Sent Test", "Testing sent listing");
 
         // Get sent emails for sender
         List<Email> sent = emailManager.listSent("testUser1");
@@ -186,7 +186,7 @@ class EmailManagerTest {
 
         // Verify the test email is in the sent folder
         boolean found = sent.stream()
-                .anyMatch(e -> e.getSubject().equals("Quarterly Report") && e.getRecipients().contains("testUser2"));
+                .anyMatch(e -> e.getSubject().equals("Sent Test") && e.getRecipients().contains("testUser2"));
         assertTrue(found, "Test email should be in sent folder");
 
         // Test sent folder for non-existent user
@@ -197,44 +197,44 @@ class EmailManagerTest {
     @Test
     void testSearchSent() {
         // Send emails with specific content to search for
-        emailManager.sendEmail("testUser1", "testUser2", "Project Status Update", "Here's the latest update on our project.");
-        emailManager.sendEmail("testUser1", "testUser3", "Client Meeting Summary", "This also mentions our ongoing project work.");
-        emailManager.sendEmail("testUser1", "testUser2", "Friday Social Event", "This should not match the search.");
+        emailManager.sendEmail("testUser1", "testUser2", "Sent Search Test chicken", "This is sent search content");
+        emailManager.sendEmail("testUser1", "testUser3", "Another Sent Test", "This contains chicken in the body");
+        emailManager.sendEmail("testUser1", "testUser2", "Unrelated Sent", "This should not match");
 
-        // Search for "project" which should match two emails
-        List<Email> searchResults = emailManager.searchSent("testUser1", "project");
+        // Search for chicken which should match two emails
+        List<Email> searchResults = emailManager.searchSent("testUser1", "chicken");
 
-        assertEquals(2, searchResults.size(), "Should find two sent emails matching 'project'");
+        assertEquals(2, searchResults.size(), "Should find two sent emails matching 'chicken'");
 
         // Verify the results contain the expected emails
         boolean foundSubject = false;
         boolean foundBody = false;
 
         for (Email email : searchResults) {
-            if (email.getSubject().toLowerCase().contains("project")) {
+            if (email.getSubject().toLowerCase().contains("chicken")) {
                 foundSubject = true;
             }
-            if (email.getBody().toLowerCase().contains("project")) {
+            if (email.getBody().toLowerCase().contains("chicken")) {
                 foundBody = true;
             }
         }
 
-        assertTrue(foundSubject, "Should find sent email with 'project' in subject");
-        assertTrue(foundBody, "Should find sent email with 'project' in body");
+        assertTrue(foundSubject, "Should find sent email with 'chicken' in subject");
+        assertTrue(foundBody, "Should find sent email with 'chicken' in body");
 
         // Test search with term not present
-        List<Email> emptyResults = emailManager.searchSent("testUser1", "budget");
+        List<Email> emptyResults = emailManager.searchSent("testUser1", "nonexistentterm");
         assertTrue(emptyResults.isEmpty(), "Search for non-existent term should return empty list");
 
         // Test search for non-existent user
-        List<Email> nonExistentUserResults = emailManager.searchSent("nonExistentUser", "project");
+        List<Email> nonExistentUserResults = emailManager.searchSent("nonExistentUser", "chicken");
         assertTrue(nonExistentUserResults.isEmpty(), "Search for non-existent user should return empty list");
     }
 
     @Test
     void testGetEmailById() {
         // Send a test email
-        Email sentEmail = emailManager.sendEmail("testUser1", "testUser2", "Important Document", "Please review this document ASAP.");
+        Email sentEmail = emailManager.sendEmail("testUser1", "testUser2", "GetById Test", "Testing getEmailById");
 
         // Get all emails with IDs for the sender
         Map<Integer, Email> emailsWithIds = emailManager.getEmailIdsForUser("testUser1");
@@ -242,7 +242,7 @@ class EmailManagerTest {
         // Find the ID of our test email
         Integer emailId = null;
         for (Map.Entry<Integer, Email> entry : emailsWithIds.entrySet()) {
-            if (entry.getValue().getSubject().equals("Important Document")) {
+            if (entry.getValue().getSubject().equals("GetById Test")) {
                 emailId = entry.getKey();
                 break;
             }
@@ -253,7 +253,7 @@ class EmailManagerTest {
         // Test getting the email by ID
         Optional<Email> retrievedEmail = emailManager.getEmailById(emailId, "testUser1");
         assertTrue(retrievedEmail.isPresent(), "Should retrieve email by ID for sender");
-        assertEquals("Important Document", retrievedEmail.get().getSubject(), "Retrieved email should have correct subject");
+        assertEquals("GetById Test", retrievedEmail.get().getSubject(), "Retrieved email should have correct subject");
 
         // Test getting the email by ID as recipient
         Optional<Email> recipientRetrievedEmail = emailManager.getEmailById(emailId, "testUser2");
@@ -271,7 +271,7 @@ class EmailManagerTest {
     @Test
     void testViewStatus() {
         // Send a test email
-        Email sentEmail = emailManager.sendEmail("testUser1", "testUser2", "Read Receipt Test", "This email tests the read receipt feature.");
+        Email sentEmail = emailManager.sendEmail("testUser1", "testUser2", "View Status Test", "Testing view status");
 
         // Initially, the email should be unviewed
         assertFalse(emailManager.hasRecipientViewedEmail(sentEmail, "testUser2"), "Email should initially be unviewed");
@@ -280,7 +280,7 @@ class EmailManagerTest {
         Map<Integer, Email> emailsWithIds = emailManager.getEmailIdsForUser("testUser1");
         Integer emailId = null;
         for (Map.Entry<Integer, Email> entry : emailsWithIds.entrySet()) {
-            if (entry.getValue().getSubject().equals("Read Receipt Test")) {
+            if (entry.getValue().getSubject().equals("View Status Test")) {
                 emailId = entry.getKey();
                 break;
             }

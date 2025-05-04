@@ -122,7 +122,13 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Handles the login command.
+     *
+     * @param jsonRequest The JSON request object containing the login details.
+     */
     private void handleLogin(JsonObject jsonRequest) {
+        //check for username and password not given
         if (!jsonRequest.has(EmailUtils.FIELD_USERNAME) || !jsonRequest.has("password")) {
             sendErrorResponse("Missing username or password");
             return;
@@ -131,11 +137,14 @@ public class ClientHandler implements Runnable {
         String username = jsonRequest.get(EmailUtils.FIELD_USERNAME).getAsString();
         String password = jsonRequest.get("password").getAsString();
 
+        //username and password authenticated
         if (userManager.authenticate(username, password)) {
             authenticatedUser = username;
 
+            //put into active clients map
             activeClients.put(username, this);
 
+            //creates json object to be sent to client
             JsonObject response = new JsonObject();
             response.addProperty(EmailUtils.FIELD_STATUS, EmailUtils.STATUS_LOGIN_SUCCESS);
             response.addProperty(EmailUtils.FIELD_USERNAME, username);
@@ -149,17 +158,25 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Handles the registration command.
+     *
+     * @param jsonRequest The JSON request object containing the registration details.
+     */
     private void handleRegister(JsonObject jsonRequest) {
         if (!jsonRequest.has(EmailUtils.FIELD_USERNAME) || !jsonRequest.has("password")) {
             sendErrorResponse("Missing username or password");
             return;
         }
 
+        //gets username and password from json request and converts to string
         String username = jsonRequest.get(EmailUtils.FIELD_USERNAME).getAsString();
         String password = jsonRequest.get("password").getAsString();
 
+        //hashes password
         String passwordHash = PasswordHasher.hashPassword(password);
 
+        //authenticates user
         if (userManager.register(username, passwordHash)) {
             authenticatedUser = username;
 
@@ -178,6 +195,9 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Handles the logout command.
+     */
     private void handleLogout() {
         if (authenticatedUser != null) {
             activeClients.remove(authenticatedUser);
@@ -193,6 +213,9 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Handles the exit command.
+     */
     private void handleExit() {
         JsonObject response = new JsonObject();
         response.addProperty(EmailUtils.FIELD_STATUS, EmailUtils.STATUS_GOODBYE);
@@ -202,8 +225,14 @@ public class ClientHandler implements Runnable {
         LOGGER.info("Client exiting: " + (authenticatedUser != null ? authenticatedUser : "unauthenticated"));
     }
 
+    /**
+     * Handles the send email command.
+     *
+     * @param jsonRequest The JSON request object containing the email details.
+     */
     private void handleSendEmail(JsonObject jsonRequest) {
         try {
+            // Validate that all required fields (recipient, subject, body) are present in the request
             if (!jsonRequest.has(EmailUtils.FIELD_RECIPIENT) ||
                     !jsonRequest.has(EmailUtils.FIELD_SUBJECT) ||
                     !jsonRequest.has(EmailUtils.FIELD_BODY)) {
@@ -211,12 +240,15 @@ public class ClientHandler implements Runnable {
                 return;
             }
 
+            //gets email details from json request
             String recipientStr = jsonRequest.get(EmailUtils.FIELD_RECIPIENT).getAsString();
             String subject = jsonRequest.get(EmailUtils.FIELD_SUBJECT).getAsString();
             String body = jsonRequest.get(EmailUtils.FIELD_BODY).getAsString();
 
+            //parses recipients string into list of email addresses
             List<String> recipients = Arrays.asList(recipientStr.split("\\s*,\\s*"));
 
+            // Attempt to send the email using the EmailManager
             LOGGER.info("Processing send email request from " + authenticatedUser + " to " + String.join(", ", recipients));
             Email email = emailManager.sendEmail(authenticatedUser, recipients, subject, body);
 
@@ -239,6 +271,9 @@ public class ClientHandler implements Runnable {
     }
 
 
+    /**
+     * Handles the list inbox command.
+     */
     private void handleListInbox() {
         List<Email> inboxEmails = emailManager.listInbox(authenticatedUser);
 
@@ -270,6 +305,11 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Handles the search inbox command.
+     *
+     * @param jsonRequest The JSON request object containing the search term.
+     */
     private void handleSearchInbox(JsonObject jsonRequest) {
         if (!jsonRequest.has("term")) {
             sendErrorResponse("Missing search term");

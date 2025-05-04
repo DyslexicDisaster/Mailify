@@ -18,10 +18,21 @@ public class User {
     private List<Email> sent = new CopyOnWriteArrayList<>();
     private Set<Email> viewedEmails = new CopyOnWriteArraySet<>();
 
+    /**
+     * Checks if the user has viewed a specific email.
+     *
+     * @param email the email to check
+     * @return true if the email has been viewed, false otherwise
+     */
     public boolean hasViewedEmail(Email email) {
         return viewedEmails.contains(email);
     }
 
+    /**
+     * Marks an email as viewed by the user.
+     *
+     * @param email the email to mark as viewed
+     */
     public void markEmailAsViewed(Email email) {
         viewedEmails.add(email);
     }

@@ -126,22 +126,26 @@ public class EmailClient {
         System.out.print("Password: ");
         String password = input.nextLine();
 
-        // Build JSON request
         JsonObject request = new JsonObject();
         request.addProperty(EmailUtils.FIELD_COMMAND, command);
         request.addProperty(EmailUtils.FIELD_USERNAME, username);
         request.addProperty(EmailUtils.FIELD_PASSWORD, password);
 
-        // Send and process the response
         sendAndHandleResponse(request, response -> {
-            String status = response.get(EmailUtils.FIELD_STATUS).getAsString();
-            if (status.equals(EmailUtils.STATUS_LOGIN_SUCCESS)) {
-                loggedInUser = username;
-                System.out.println("Login successful!");
-            } else if (status.equals(EmailUtils.STATUS_REGISTERED)) {
-                System.out.println("Registration successful!");
+            if (response.has(EmailUtils.FIELD_STATUS)) {
+                String status = response.get(EmailUtils.FIELD_STATUS).getAsString();
+                if (status.equals(EmailUtils.STATUS_LOGIN_SUCCESS)) {
+                    loggedInUser = username;
+                    System.out.println("Login successful!");
+                } else if (status.equals(EmailUtils.STATUS_REGISTERED)) {
+                    System.out.println("Registration successful!");
+                } else if (response.has(EmailUtils.FIELD_ERROR)) {
+                    System.out.println("Error: " + response.get(EmailUtils.FIELD_ERROR).getAsString());
+                } else {
+                    System.out.println("Authentication failed. Please check your credentials.");
+                }
             } else {
-                System.out.println("Error: " + response.get(EmailUtils.FIELD_ERROR).getAsString());
+                System.out.println("Invalid server response");
             }
         });
     }
