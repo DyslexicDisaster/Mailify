@@ -1,4 +1,127 @@
 package model;
 
-public class EmailManager {
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+public class EmailManager implements IEmailManager {
+    private final Map<Integer, Email> emailsById = new ConcurrentHashMap<>();
+    private final AtomicInteger nextEmailId = new AtomicInteger(1);
+    // We use atomic integer to ensure each email has a unique ID by atomizing and incrementing we prevent race conditions
+    private final UserManager userManager;
+
+    public EmailManager(UserManager userManager) {
+        this.userManager = userManager;
+    }
+
+    @Override
+    public Email sendEmail(String sender, String recipient, String subject, String body) {
+        if (!userManager.userExists(sender) || !userManager.userExists(recipient)) {
+            return null;
+        }
+
+        Email email = new Email();
+        email.setSender(sender);
+        email.setRecipients(Collections.singletonList(recipient));
+        email.setSubject(subject);
+        email.setBody(body);
+        email.setTimestamp(LocalDateTime.now());
+        email.setViewed(false);
+
+        int emailId = nextEmailId.getAndIncrement();
+        emailsById.put(emailId, email);
+
+        User senderUser = userManager.getUserByUsername(sender);
+        senderUser.getSent().add(email);
+
+        User recipientUser = userManager.getUserByUsername(recipient);
+        recipientUser.getInbox().add(email);
+
+        return email;
+    }
+
+    @Override
+    public List<Email> listInbox(String username) {
+        User user = userManager.getUserByUsername(username);
+        if (user == null) {
+            return Collections.emptyList();
+        }
+        return new ArrayList<>(user.getInbox());
+    }
+
+    @Override
+    public List<Email> searchInbox(String username, String term) {
+        User user = userManager.getUserByUsername(username);
+        if (user == null) {
+            return Collections.emptyList();
+        }
+
+        String lowercaseTerm = term.toLowerCase();
+        return user.getInbox().stream()
+                .filter(email ->
+                        email.getSender().toLowerCase().contains(lowercaseTerm) ||
+                                email.getSubject().toLowerCase().contains(lowercaseTerm) ||
+                                email.getBody().toLowerCase().contains(lowercaseTerm))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Email> listSent(String username) {
+        User user = userManager.getUserByUsername(username);
+        if (user == null) {
+            return Collections.emptyList();
+        }
+        return new ArrayList<>(user.getSent());
+    }
+
+    @Override
+    public List<Email> searchSent(String username, String term) {
+        User user = userManager.getUserByUsername(username);
+        if (user == null) {
+            return Collections.emptyList();
+        }
+
+        String lowercaseTerm = term.toLowerCase();
+        return user.getSent().stream()
+                .filter(email ->
+                        email.getRecipients().stream().anyMatch(r -> r.toLowerCase().contains(lowercaseTerm)) ||
+                                email.getSubject().toLowerCase().contains(lowercaseTerm) ||
+                                email.getBody().toLowerCase().contains(lowercaseTerm))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Optional<Email> getEmailById(int id, String username) {
+        Email email = emailsById.get(id);
+        if (email == null) {
+            return Optional.empty();
+        }
+
+        if (email.getSender().equals(username) ||
+                email.getRecipients().contains(username)) {
+
+            if (email.getRecipients().contains(username)) {
+                email.setViewed(true);
+            }
+
+            return Optional.of(email);
+        }
+
+        return Optional.empty();
+    }
+
+    public Map<Integer, Email> getEmailIdsForUser(String username) {
+        Map<Integer, Email> userEmails = new HashMap<>();
+
+        for (Map.Entry<Integer, Email> entry : emailsById.entrySet()) {
+            Email email = entry.getValue();
+            if (email.getSender().equals(username) || email.getRecipients().contains(username)) {
+                userEmails.put(entry.getKey(), email);
+            }
+        }
+
+        return userEmails;
+    }
 }
