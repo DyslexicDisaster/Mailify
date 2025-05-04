@@ -84,8 +84,11 @@ public class EmailClient {
             case "3":
             case "4":
             case "5":
-            case "6":
                 handleEmailOperations(choice);
+                break;
+            case "6":
+
+                readEmail();
                 break;
             case "7":
                 logout();
@@ -183,13 +186,72 @@ public class EmailClient {
 
         if (response.has(EmailUtils.FIELD_EMAILS)) {
             JsonArray emails = response.getAsJsonArray(EmailUtils.FIELD_EMAILS);
-            System.out.println(gson.toJson(emails));
+            System.out.println("\n=== Email List ===");
+            for (JsonElement emailElement : emails) {
+                JsonObject emailObj = emailElement.getAsJsonObject();
+                System.out.println("ID: " + emailObj.get("id").getAsString());
+
+                if (emailObj.has(EmailUtils.FIELD_SENDER)) {
+                    System.out.println("From: " + emailObj.get(EmailUtils.FIELD_SENDER).getAsString());
+                }
+
+                if (emailObj.has(EmailUtils.FIELD_RECIPIENT)) {
+                    System.out.println("To: " + emailObj.get(EmailUtils.FIELD_RECIPIENT).getAsString());
+                }
+
+                System.out.println("Subject: " + emailObj.get(EmailUtils.FIELD_SUBJECT).getAsString());
+                System.out.println("Date: " + emailObj.get(EmailUtils.FIELD_TIMESTAMP).getAsString());
+
+                if (emailObj.has("viewedByRecipients")) {
+                    System.out.println("Read Status:");
+                    JsonObject viewedStatus = emailObj.getAsJsonObject("viewedByRecipients");
+                    for (String recipient : viewedStatus.keySet()) {
+                        System.out.println("  " + recipient + ": " +
+                                (viewedStatus.get(recipient).getAsBoolean() ? "Read" : "Unread"));
+                    }
+                }
+
+                System.out.println("---------------------");
+            }
         } else if (response.has(EmailUtils.FIELD_EMAIL)) {
             JsonObject email = response.getAsJsonObject(EmailUtils.FIELD_EMAIL);
-            System.out.println(gson.toJson(email));
+            System.out.println("\n=== Email Content ===");
+            System.out.println("From: " + email.get(EmailUtils.FIELD_SENDER).getAsString());
+            System.out.println("To: " + email.get(EmailUtils.FIELD_RECIPIENT).getAsString());
+            System.out.println("Subject: " + email.get(EmailUtils.FIELD_SUBJECT).getAsString());
+            System.out.println("Date: " + email.get(EmailUtils.FIELD_TIMESTAMP).getAsString());
+            System.out.println("\n" + email.get(EmailUtils.FIELD_BODY).getAsString());
+
+            if (email.has("viewedByRecipients")) {
+                System.out.println("\n=== Viewed Status ===");
+                JsonObject viewedStatus = email.getAsJsonObject("viewedByRecipients");
+                for (String recipient : viewedStatus.keySet()) {
+                    System.out.println(recipient + ": " +
+                            (viewedStatus.get(recipient).getAsBoolean() ? "Read" : "Unread"));
+                }
+            }
         } else {
             System.out.println(status);
         }
+    }
+
+    private static void readEmail() throws IOException {
+        System.out.print("Enter email ID to read: ");
+        String emailId = input.nextLine();
+
+
+        try {
+            Integer.parseInt(emailId);
+        } catch (NumberFormatException e) {
+            System.out.println("Error: Email ID must be a number");
+            return;
+        }
+
+        JsonObject request = new JsonObject();
+        request.addProperty(EmailUtils.FIELD_COMMAND, EmailUtils.READ);
+        request.addProperty("id", emailId);
+
+        sendAndHandleResponse(request, EmailClient::handleEmailResponse);
     }
 
     private static void logout() throws IOException {

@@ -16,6 +16,7 @@ import utils.EmailUtils;
 import java.io.IOException;
 import java.net.Socket;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -210,32 +211,26 @@ public class ClientHandler implements Runnable {
                 return;
             }
 
-            String recipient = jsonRequest.get(EmailUtils.FIELD_RECIPIENT).getAsString();
+            String recipientStr = jsonRequest.get(EmailUtils.FIELD_RECIPIENT).getAsString();
             String subject = jsonRequest.get(EmailUtils.FIELD_SUBJECT).getAsString();
             String body = jsonRequest.get(EmailUtils.FIELD_BODY).getAsString();
 
-            LOGGER.info("Processing send email request from " + authenticatedUser + " to " + recipient);
-            Email email = emailManager.sendEmail(authenticatedUser, recipient, subject, body);
+            List<String> recipients = Arrays.asList(recipientStr.split("\\s*,\\s*"));
+
+            LOGGER.info("Processing send email request from " + authenticatedUser + " to " + String.join(", ", recipients));
+            Email email = emailManager.sendEmail(authenticatedUser, recipients, subject, body);
 
             if (email != null) {
                 JsonObject response = new JsonObject();
                 response.addProperty(EmailUtils.FIELD_STATUS, EmailUtils.STATUS_SENT);
                 sendJsonResponse(response);
-                LOGGER.info("Email sent from " + authenticatedUser + " to " + recipient);
-
-                try {
-                    LOGGER.info("Attempting to notify recipient: " + recipient);
-                    notifyRecipient(recipient, email);
-                    LOGGER.info("Notification attempt completed for: " + recipient);
-                } catch (Exception e) {
-                    LOGGER.log(Level.SEVERE, "Error notifying recipient", e);
-                }
+                LOGGER.info("Email sent from " + authenticatedUser + " to " + String.join(", ", recipients));
             } else {
                 JsonObject response = new JsonObject();
                 response.addProperty(EmailUtils.FIELD_STATUS, EmailUtils.STATUS_SEND_FAILURE);
-                response.addProperty(EmailUtils.FIELD_ERROR, "Recipient not found");
+                response.addProperty(EmailUtils.FIELD_ERROR, "One or more recipients not found");
                 sendJsonResponse(response);
-                LOGGER.warning("Failed to send email: recipient " + recipient + " not found");
+                LOGGER.warning("Failed to send email: one or more recipients not found");
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Unexpected error in handleSendEmail", e);
@@ -243,28 +238,6 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void notifyRecipient(String recipient, Email email) {
-        try {
-            ClientHandler recipientHandler = activeClients.get(recipient);
-            if (recipientHandler != null) {
-                LOGGER.info("Recipient " + recipient + " is online, sending notification");
-                JsonObject notification = new JsonObject();
-                notification.addProperty(EmailUtils.FIELD_SENDER, email.getSender());
-                notification.addProperty(EmailUtils.FIELD_SUBJECT, email.getSubject());
-
-                try {
-                    recipientHandler.sendJsonResponse(notification);
-                    LOGGER.info("Notification successfully sent to " + recipient);
-                } catch (Exception e) {
-                    LOGGER.log(Level.SEVERE, "Failed to send notification to " + recipient, e);
-                }
-            } else {
-                LOGGER.info("Recipient " + recipient + " is not currently online, no notification sent");
-            }
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error in notifyRecipient for " + recipient, e);
-        }
-    }
 
     private void handleListInbox() {
         List<Email> inboxEmails = emailManager.listInbox(authenticatedUser);
@@ -356,6 +329,16 @@ public class ClientHandler implements Runnable {
                     emailNode.addProperty(EmailUtils.FIELD_RECIPIENT, String.join(", ", email.getRecipients()));
                     emailNode.addProperty(EmailUtils.FIELD_SUBJECT, email.getSubject());
                     emailNode.addProperty(EmailUtils.FIELD_TIMESTAMP, email.getTimestamp().format(DATE_FORMATTER));
+
+                    if (email.getRecipients().size() > 0) {
+                        JsonObject viewedStatusNode = new JsonObject();
+                        for (String recipient : email.getRecipients()) {
+                            viewedStatusNode.addProperty(recipient,
+                                    emailManager.hasRecipientViewedEmail(email, recipient));
+                        }
+                        emailNode.add("viewedByRecipients", viewedStatusNode);
+                    }
+
                     emailsArray.add(emailNode);
                 }
             }
@@ -423,6 +406,17 @@ public class ClientHandler implements Runnable {
             emailNode.addProperty(EmailUtils.FIELD_SUBJECT, email.getSubject());
             emailNode.addProperty(EmailUtils.FIELD_BODY, email.getBody());
             emailNode.addProperty(EmailUtils.FIELD_TIMESTAMP, email.getTimestamp().format(DATE_FORMATTER));
+
+            if (email.getRecipients().size() > 1 && email.getSender().equals(authenticatedUser)) {
+                Map<String, Boolean> viewedStatus = emailManager.getViewStatusForAllRecipients(email);
+                JsonObject viewedStatusNode = new JsonObject();
+
+                for (Map.Entry<String, Boolean> entry : viewedStatus.entrySet()) {
+                    viewedStatusNode.addProperty(entry.getKey(), entry.getValue());
+                }
+
+                emailNode.add("viewedByRecipients", viewedStatusNode);
+            }
 
             response.add(EmailUtils.FIELD_EMAIL, emailNode);
             sendJsonResponse(response);

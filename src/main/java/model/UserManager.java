@@ -3,6 +3,7 @@ package model;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 public class UserManager implements IUserManager {
     private final Map<String, User> users = new ConcurrentHashMap<>();
@@ -27,7 +28,7 @@ public class UserManager implements IUserManager {
             return false;
         }
 
-        User newUser = new User(username, passwordHash, new CopyOnWriteArrayList<>(), new CopyOnWriteArrayList<>());
+        User newUser = new User(username, passwordHash, new CopyOnWriteArrayList<>(), new CopyOnWriteArrayList<>(), new CopyOnWriteArraySet<>());
         users.put(username, newUser);
         return true;
     }
