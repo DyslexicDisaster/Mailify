@@ -54,21 +54,6 @@ public class NetworkLayerJSON {
         return inputStream.nextLine();
     }
 
-    /**
-     * Send any JSON‑serializable object (e.g. request or response).
-     * It will be turned into one line of JSON + '\n'.
-     */
-    /*public void sendJson(Object obj) throws IOException {
-        String json = MAPPER.writeValueAsString(obj);
-        outputStream.println(json);
-    }
-
-
-    public <T> T receiveJson(Class<T> clazz) throws IOException {
-        String line = inputStream.nextLine();
-        return MAPPER.readValue(line, clazz);
-    }*/
-
     /** Gracefully close streams and socket. */
     public void disconnect() throws IOException {
         if(this.dataSocket != null) {

@@ -249,7 +249,6 @@ public class ClientHandler implements Runnable {
             if (recipientHandler != null) {
                 LOGGER.info("Recipient " + recipient + " is online, sending notification");
                 JsonObject notification = new JsonObject();
-                notification.addProperty(EmailUtils.FIELD_NOTIFICATION, EmailUtils.NOTIF_NEW_EMAIL);
                 notification.addProperty(EmailUtils.FIELD_SENDER, email.getSender());
                 notification.addProperty(EmailUtils.FIELD_SUBJECT, email.getSubject());
 
