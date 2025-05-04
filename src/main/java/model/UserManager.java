@@ -33,9 +33,9 @@ public class UserManager implements IUserManager {
     }
 
     @Override
-    public boolean authenticate(String username, String passwordHash) {
+    public boolean authenticate(String username, String password) {
         User user = users.get(username);
-        return user != null && user.getPasswordHash().equals(passwordHash);
+        return user != null && PasswordHasher.verifyPassword(password, user.getPasswordHash());
     }
 
     @Override
