@@ -1,6 +1,6 @@
 package network;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 import utils.EmailUtils;
 
 import java.io.IOException;
@@ -15,16 +15,15 @@ public class NetworkLayerJSON {
     private String hostname;
     private int port;
 
-    // Jackson mapper for JSON serialization/deserialization
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final Gson gson = new Gson();
 
-    /** Client‐side ctor: will connect to EmailUtils.HOSTNAME and PORT if you call connect(). */
+
     public NetworkLayerJSON(String hostname, int port){
         this.hostname = hostname;
         this.port = port;
     }
 
-    /** Server‐side ctor: wrap an accepted socket. */
+
     public NetworkLayerJSON(Socket dataSocket) throws IOException {
         if(dataSocket == null){
             throw new IllegalArgumentException("Socket cannot be null");
@@ -38,19 +37,19 @@ public class NetworkLayerJSON {
         this.outputStream = new PrintWriter(dataSocket.getOutputStream());
     }
 
-    /** Connect (client) to the server using EmailUtils constants. */
+
     public void connect() throws IOException {
-        this.dataSocket = new Socket(EmailUtils.HOSTNAME, EmailUtils.PORT);  // :contentReference[oaicite:0]{index=0}:contentReference[oaicite:1]{index=1}
+        this.dataSocket = new Socket(EmailUtils.HOSTNAME, EmailUtils.PORT);
         setStreams();
     }
 
-    /** Send a raw text message (unchanged). */
+
     public void send(String message){
         outputStream.println(message);
         outputStream.flush();
     }
 
-    /** Receive a raw text line (unchanged). */
+
     public String receive(){
         return inputStream.nextLine();
     }
