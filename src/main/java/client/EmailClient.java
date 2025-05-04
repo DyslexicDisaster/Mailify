@@ -15,18 +15,25 @@ public class EmailClient {
 
     public static void main(String[] args) {
         try {
+            // Establish connection to the server
             network = new NetworkLayerJSON(EmailUtils.HOSTNAME, EmailUtils.PORT);
             network.connect();
+            // Enter the main interactive menu loop
             showMainMenu();
         } catch (IOException e) {
             System.out.println("Connection error: " + e.getMessage());
         }
     }
 
+    /**
+     * Displays the main menu, routing to login/register or email operations
+     * based on whether a user is currently logged in.
+     */
     private static void showMainMenu() {
         while (true) {
             System.out.println("\n=== Email Client ===");
             if (loggedInUser != null) {
+                // Menu for authenticated users
                 System.out.println("Logged in as: " + loggedInUser);
                 System.out.println("1. Send Email");
                 System.out.println("2. List Inbox");
@@ -36,6 +43,7 @@ public class EmailClient {
                 System.out.println("6. Read Email");
                 System.out.println("7. Logout");
             } else {
+                // Menu for unauthenticated users
                 System.out.println("1. Login");
                 System.out.println("2. Register");
             }
@@ -47,6 +55,9 @@ public class EmailClient {
         }
     }
 
+    /**
+     * Delegates user menu choices to the appropriate handler.
+     */
     private static void handleChoice(String choice) {
         try {
             if (loggedInUser == null) {
@@ -59,6 +70,9 @@ public class EmailClient {
         }
     }
 
+    /**
+     * Handles menu options when not logged in (login, register, exit).
+     */
     private static void handleUnauthenticatedChoice(String choice) throws IOException {
         switch (choice) {
             case "1":
@@ -75,6 +89,9 @@ public class EmailClient {
         }
     }
 
+    /**
+     * Handles menu options when logged in (send, list, search, read, logout, exit).
+     */
     private static void handleAuthenticatedChoice(String choice) throws IOException {
         switch (choice) {
             case "1":
@@ -87,7 +104,6 @@ public class EmailClient {
                 handleEmailOperations(choice);
                 break;
             case "6":
-
                 readEmail();
                 break;
             case "7":
@@ -101,17 +117,22 @@ public class EmailClient {
         }
     }
 
+    /**
+     * Shared handler for LOGIN and REGISTER commands.
+     */
     private static void handleAuthCommand(String command) throws IOException {
         System.out.print("Username: ");
         String username = input.nextLine();
         System.out.print("Password: ");
         String password = input.nextLine();
 
+        // Build JSON request
         JsonObject request = new JsonObject();
         request.addProperty(EmailUtils.FIELD_COMMAND, command);
         request.addProperty(EmailUtils.FIELD_USERNAME, username);
         request.addProperty(EmailUtils.FIELD_PASSWORD, password);
 
+        // Send and process the response
         sendAndHandleResponse(request, response -> {
             String status = response.get(EmailUtils.FIELD_STATUS).getAsString();
             if (status.equals(EmailUtils.STATUS_LOGIN_SUCCESS)) {
@@ -125,6 +146,9 @@ public class EmailClient {
         });
     }
 
+    /**
+     * Prompts for email details and sends a SEND command.
+     */
     private static void sendEmail() throws IOException {
         System.out.print("Recipient: ");
         String recipient = input.nextLine();
@@ -133,12 +157,14 @@ public class EmailClient {
         System.out.print("Body: ");
         String body = input.nextLine();
 
+        // Build SEND request
         JsonObject request = new JsonObject();
         request.addProperty(EmailUtils.FIELD_COMMAND, EmailUtils.SEND);
         request.addProperty(EmailUtils.FIELD_RECIPIENT, recipient);
         request.addProperty(EmailUtils.FIELD_SUBJECT, subject);
         request.addProperty(EmailUtils.FIELD_BODY, body);
 
+        // Send and process
         sendAndHandleResponse(request, response -> {
             String status = response.get(EmailUtils.FIELD_STATUS).getAsString();
             if (status.equals(EmailUtils.STATUS_SENT)) {
@@ -149,6 +175,9 @@ public class EmailClient {
         });
     }
 
+    /**
+     * Handles list/search/read commands based on the user's menu choice.
+     */
     private static void handleEmailOperations(String choice) throws IOException {
         JsonObject request = new JsonObject();
         String command = "";
@@ -181,39 +210,31 @@ public class EmailClient {
         sendAndHandleResponse(request, EmailClient::handleEmailResponse);
     }
 
+    /**
+     * Prints out email lists or content based on the server response.
+     */
     private static void handleEmailResponse(JsonObject response) {
         String status = response.get(EmailUtils.FIELD_STATUS).getAsString();
 
         if (response.has(EmailUtils.FIELD_EMAILS)) {
+            // Display list of emails
             JsonArray emails = response.getAsJsonArray(EmailUtils.FIELD_EMAILS);
             System.out.println("\n=== Email List ===");
             for (JsonElement emailElement : emails) {
                 JsonObject emailObj = emailElement.getAsJsonObject();
                 System.out.println("ID: " + emailObj.get("id").getAsString());
-
                 if (emailObj.has(EmailUtils.FIELD_SENDER)) {
                     System.out.println("From: " + emailObj.get(EmailUtils.FIELD_SENDER).getAsString());
                 }
-
                 if (emailObj.has(EmailUtils.FIELD_RECIPIENT)) {
                     System.out.println("To: " + emailObj.get(EmailUtils.FIELD_RECIPIENT).getAsString());
                 }
-
                 System.out.println("Subject: " + emailObj.get(EmailUtils.FIELD_SUBJECT).getAsString());
                 System.out.println("Date: " + emailObj.get(EmailUtils.FIELD_TIMESTAMP).getAsString());
-
-                if (emailObj.has("viewedByRecipients")) {
-                    System.out.println("Read Status:");
-                    JsonObject viewedStatus = emailObj.getAsJsonObject("viewedByRecipients");
-                    for (String recipient : viewedStatus.keySet()) {
-                        System.out.println("  " + recipient + ": " +
-                                (viewedStatus.get(recipient).getAsBoolean() ? "Read" : "Unread"));
-                    }
-                }
-
                 System.out.println("---------------------");
             }
         } else if (response.has(EmailUtils.FIELD_EMAIL)) {
+            // Display single email content
             JsonObject email = response.getAsJsonObject(EmailUtils.FIELD_EMAIL);
             System.out.println("\n=== Email Content ===");
             System.out.println("From: " + email.get(EmailUtils.FIELD_SENDER).getAsString());
@@ -221,25 +242,20 @@ public class EmailClient {
             System.out.println("Subject: " + email.get(EmailUtils.FIELD_SUBJECT).getAsString());
             System.out.println("Date: " + email.get(EmailUtils.FIELD_TIMESTAMP).getAsString());
             System.out.println("\n" + email.get(EmailUtils.FIELD_BODY).getAsString());
-
-            if (email.has("viewedByRecipients")) {
-                System.out.println("\n=== Viewed Status ===");
-                JsonObject viewedStatus = email.getAsJsonObject("viewedByRecipients");
-                for (String recipient : viewedStatus.keySet()) {
-                    System.out.println(recipient + ": " +
-                            (viewedStatus.get(recipient).getAsBoolean() ? "Read" : "Unread"));
-                }
-            }
         } else {
+            // Fallback: just print the status
             System.out.println(status);
         }
     }
 
+    /**
+     * Prompts user for an email ID and sends a READ command.
+     */
     private static void readEmail() throws IOException {
         System.out.print("Enter email ID to read: ");
         String emailId = input.nextLine();
 
-
+        // Validate numeric ID
         try {
             Integer.parseInt(emailId);
         } catch (NumberFormatException e) {
@@ -254,6 +270,9 @@ public class EmailClient {
         sendAndHandleResponse(request, EmailClient::handleEmailResponse);
     }
 
+    /**
+     * Sends a LOGOUT command and clears session state.
+     */
     private static void logout() throws IOException {
         JsonObject request = new JsonObject();
         request.addProperty(EmailUtils.FIELD_COMMAND, EmailUtils.LOGOUT);
@@ -263,6 +282,9 @@ public class EmailClient {
         });
     }
 
+    /**
+     * Sends an EXIT command and terminates the application.
+     */
     private static void exitClient() throws IOException {
         JsonObject request = new JsonObject();
         request.addProperty(EmailUtils.FIELD_COMMAND, EmailUtils.EXIT);
@@ -271,6 +293,10 @@ public class EmailClient {
         System.exit(0);
     }
 
+    /**
+     * Sends a JSON request, waits for the response, and dispatches it
+     * to the given handler.
+     */
     private static void sendAndHandleResponse(JsonObject request, ResponseHandler handler) throws IOException {
         String jsonRequest = gson.toJson(request);
         network.send(jsonRequest);
@@ -279,6 +305,7 @@ public class EmailClient {
         handler.handle(response);
     }
 
+    // Functional interface for handling JSON responses
     interface ResponseHandler {
         void handle(JsonObject response);
     }
