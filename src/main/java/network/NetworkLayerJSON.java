@@ -1,7 +1,6 @@
 package network;
 
 import com.google.gson.Gson;
-import utils.EmailUtils;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -39,7 +38,7 @@ public class NetworkLayerJSON {
 
 
     public void connect() throws IOException {
-        this.dataSocket = new Socket(EmailUtils.HOSTNAME, EmailUtils.PORT);
+        this.dataSocket = new Socket(hostname, port);
         setStreams();
     }
 

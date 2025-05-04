@@ -198,8 +198,10 @@ public class EmailManager implements IEmailManager {
                 User user = userManager.getUserByUsername(username);
                 user.markEmailAsViewed(email);
             }
+
             return Optional.of(email);
         }
+
         return Optional.empty();
     }
 
@@ -238,12 +240,14 @@ public class EmailManager implements IEmailManager {
      */
     public Map<Integer, Email> getEmailIdsForUser(String username) {
         Map<Integer, Email> userEmails = new HashMap<>();
+
         for (Map.Entry<Integer, Email> entry : emailsById.entrySet()) {
             Email email = entry.getValue();
             if (email.getSender().equals(username) || email.getRecipients().contains(username)) {
                 userEmails.put(entry.getKey(), email);
             }
         }
+
         return userEmails;
     }
 }
