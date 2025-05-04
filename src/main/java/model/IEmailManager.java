@@ -1,6 +1,7 @@
 package model;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface IEmailManager {
@@ -11,4 +12,7 @@ public interface IEmailManager {
     List<Email> listSent(String username);
     List<Email> searchSent(String username, String term);
     Optional<Email> getEmailById(int id, String username);
+    boolean hasRecipientViewedEmail(Email email, String recipient);
+    Map<String, Boolean> getViewStatusForAllRecipients(Email email);
+    Map<Integer, Email> getEmailIdsForUser(String username);
 }

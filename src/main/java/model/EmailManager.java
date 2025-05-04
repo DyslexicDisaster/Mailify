@@ -149,6 +149,7 @@ public class EmailManager implements IEmailManager {
         return Optional.empty();
     }
 
+    @Override
     public boolean hasRecipientViewedEmail(Email email, String recipientUsername) {
         User recipient = userManager.getUserByUsername(recipientUsername);
         if (recipient == null) {
@@ -158,6 +159,7 @@ public class EmailManager implements IEmailManager {
     }
 
 
+    @Override
     public Map<String, Boolean> getViewStatusForAllRecipients(Email email) {
         Map<String, Boolean> viewStatus = new HashMap<>();
         for (String recipient : email.getRecipients()) {
@@ -166,6 +168,7 @@ public class EmailManager implements IEmailManager {
         return viewStatus;
     }
 
+    @Override
     public Map<Integer, Email> getEmailIdsForUser(String username) {
         Map<Integer, Email> userEmails = new HashMap<>();
 

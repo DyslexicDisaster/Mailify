@@ -45,11 +45,9 @@ public class UserManager implements IUserManager {
     }
 
 
+    @Override
     public User getUserByUsername(String username) {
         return users.get(username);
     }
 
-    public static String hashPassword(String password) {
-        return PasswordHasher.hashPassword(password);
-    }
 }
